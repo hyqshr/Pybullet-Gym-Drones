@@ -54,9 +54,12 @@ class TRPOAgent:
         -------
             Action choice for each action dimension.
         """
-        state = torch.as_tensor(state, dtype=torch.float32, device=self.device)
+        # print(state)
+        metadata = torch.as_tensor(state[1:], dtype=torch.float32, device=self.device)
+        image = torch.as_tensor(state[0], dtype=torch.float32, device=self.device)
+        
         # Parameterize distribution with policy, sample action
-        normal_dist = self.distribution(self.policy(state), self.logstd.exp())
+        normal_dist = self.distribution(self.policy(image, metadata), self.logstd.exp())
         action = normal_dist.sample()
         # Save information
         self.buffers['actions'].append(action)
@@ -197,7 +200,6 @@ class TRPOAgent:
         num_batch_steps = len(self.buffers['completed_rewards'])
         rewards = torch.tensor(self.buffers['completed_rewards'])
         actions = torch.stack(self.buffers['actions'][:num_batch_steps])
-        print("!!", actions.size())
         states = torch.stack(self.buffers['states'][:num_batch_steps])
         log_probs = torch.stack(self.buffers['log_probs'][:num_batch_steps])
         rewards, actions, states, log_probs = (rewards.to(self.device),
@@ -245,7 +247,7 @@ class TRPOAgent:
 
         # Begin training
         observation = env.reset()
-        print("length observation: ",len(observation))
+        # print("length observation: ",len(observation))
         
         for iteration in range(iterations):
             # Set initial value to 0

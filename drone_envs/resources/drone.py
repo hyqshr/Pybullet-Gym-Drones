@@ -33,13 +33,6 @@ class Drone:
             posObj=[0, 0, 0],
             flags=p.LINK_FRAME,
         )
-        
-        # p.applyExternalTorque(
-        #     self.drone,
-        #     4,
-        #     torqueObj=[thrust_x, thrust_y, thrust_z],
-        #     flags=p.LINK_FRAME,
-        # )
 
 
     def get_observation(self):

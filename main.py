@@ -2,6 +2,7 @@ import gym
 import torch
 from agent import TRPOAgent
 import time
+import drone_envs
 import pybullet as p
 import sys
 
@@ -13,11 +14,9 @@ class Model(torch.nn.Module):
         """
         super().__init__()
 
-    def forward(self, x):
-        """
-        In the forward function we accept a Tensor of input data and we must return
-        a Tensor of output data. We can use Modules defined in the constructor as
-        well as arbitrary operators on Tensors.
+    def forward(self, image, metadata):
+        """input
+        image shape
         """
         return 
 
@@ -36,7 +35,10 @@ def main():
     agent = TRPOAgent(policy=nn)
     agent.load_model("agent.pth")
 
-    env = "DroneNavigation-v0"
+    env = 'DroneNavigation-v0'
+    # env = "DroneNavigation-v1"
+    
+    
     agent.train(env,
                 seed=0,
                 batch_size=5000,

@@ -8,8 +8,8 @@ from ..resources.goal import Goal
 import time
 from ..config import drone_env_v0 as config
 from ..config import observation_space_v0 as observation_space
-
 import matplotlib.pyplot as plt
+
 
 class DroneNavigationV0(gym.Env):
     metadata = {'render.modes': ['human']}
@@ -74,7 +74,6 @@ class DroneNavigationV0(gym.Env):
         self.reset()
 
     def step(self, action):
-        
         # Feed action to the drone and get observation of drone's state
         self.drone.apply_action(action)
         p.stepSimulation()
@@ -93,11 +92,11 @@ class DroneNavigationV0(gym.Env):
         return [seed]
 
     def reset(self):
-        print("reset env")
+        # print("reset env")
         p.resetSimulation(self.client)
-        # p.setGravity(0, 0, -9.8)
-        # Reload the plane and drone
         self.done = False
+        
+        # Reload the plane and drone
         Plane(self.client)
         self.drone = Drone(self.client)
         self.reset_goal_position()
@@ -128,9 +127,10 @@ class DroneNavigationV0(gym.Env):
         frame = p.getCameraImage(100, 100, view_matrix, proj_matrix)[2]
         frame = np.reshape(frame, (100, 100, 4))
         self.rendered_img.set_data(frame)
+        plt.draw()
+        
         # plt.savefig('graph' +  str(time.time()) +  '.png')
         # print(frame)
-        plt.draw()
         # plt.pause(.0001)
 
     def close(self):
@@ -179,14 +179,6 @@ class DroneNavigationV0(gym.Env):
             self.done = True
             print("reach the goal!  timestamp-" + str(time.time()))
             reward += 50
-
-        
-        # # punish large augular velocity
-        # angular_velocity_x = observation[-6]
-        # angular_velocity_y = observation[-5]
-        # angular_velocity_z = observation[-4]
-        # # print(angular_velocity_x, angular_velocity_y,angular_velocity_z)
-        # reward -= abs(angular_velocity_x) + abs(angular_velocity_y) + abs(angular_velocity_z)
         
         return reward
     

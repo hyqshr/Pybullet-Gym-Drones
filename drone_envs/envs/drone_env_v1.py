@@ -6,10 +6,13 @@ from ..resources.drone import Drone
 from ..resources.plane import Plane
 from ..resources.goal import Goal
 import time
+from collections import deque
 from ..config import drone_env_v1 as config
 from ..config import observation_space_v1 as observation_space
 import random
 import matplotlib.pyplot as plt
+import pybullet_data
+
 
 class DroneNavigationV1(gym.Env):
     metadata = {'render.modes': ['human']}
@@ -66,10 +69,10 @@ class DroneNavigationV1(gym.Env):
                           ], dtype=np.float32))
         self.np_random, _ = gym.utils.seeding.np_random()
 
-        self.client = p.connect(config["display"])
+        self.client = p.connect(config["display"])        
         # Reduce length of episodes for RL algorithms
         p.setTimeStep(1/30, self.client)
-        self.obstacles_pos_list = None
+        self.obstacles_pos_list = []
         self.drone = None
         self.obstacle_list = None
         self.goal = None
@@ -77,7 +80,9 @@ class DroneNavigationV1(gym.Env):
         self.prev_dist_to_goal = None
         self.rendered_img = None
         self.render_rot_matrix = None
-        self.reset()
+        self.frames = deque([], maxlen=5)
+        
+        # self.reset()
 
     def step(self, action):
         
@@ -91,7 +96,7 @@ class DroneNavigationV1(gym.Env):
         dist_to_goal = self.calculate_distance_from_goal(drone_ob)
         self.prev_dist_to_goal = dist_to_goal
 
-        ob = np.array(drone_ob + self.goal, dtype=np.float32)
+        ob = (np.array(list(self.frames)), np.array(drone_ob + self.goal, dtype=np.float32))
         return ob, reward, self.done, dict()
 
     def seed(self, seed=None):
@@ -101,18 +106,25 @@ class DroneNavigationV1(gym.Env):
     def reset(self):
         print("reset env")
         p.resetSimulation(self.client)
-        # p.setGravity(0, 0, -9.8)
-        # Reload the plane and drone
+        
+        # Reload the plane, drone, goal position, obstacle
         self.done = False
         Plane(self.client)
         self.drone = Drone(self.client)
         self.reset_goal_position()
+        self.setup_obstacles()
         # Get observation to return
         drone_ob = self.drone.get_observation()
+        
+        # call render and reset the image queue
+        self.render()
+        for _ in range(5):
+            self.frames.append(self.frame)
 
         # calculate initial distance from drone to goal
         self.prev_dist_to_goal = self.calculate_distance_from_goal(drone_ob)
-        return np.array(drone_ob + self.goal, dtype=np.float32)
+        
+        return (np.array(list(self.frames)), np.array(drone_ob + self.goal, dtype=np.float32))
 
     def render(self, mode='human'):
         if self.rendered_img is None:
@@ -135,6 +147,10 @@ class DroneNavigationV1(gym.Env):
         frame = np.reshape(frame, (100, 100, 4))
         self.rendered_img.set_data(frame)
         plt.draw()
+        
+        # append the frame to img deque
+        self.frame = frame
+        self.frames.append(frame)
 
     def close(self):
         p.disconnect(self.client)
@@ -152,11 +168,11 @@ class DroneNavigationV1(gym.Env):
 
     def reset_goal_position(self):
         # Set the goal to a random target
-        x = (self.np_random.uniform(5, 9) if self.np_random.randint(2) else
-             self.np_random.uniform(-5, -9))
-        y = (self.np_random.uniform(5, 9) if self.np_random.randint(2) else
-             self.np_random.uniform(-5, -9))
-        z = self.np_random.uniform(5, 9)
+        x = (self.np_random.uniform(8, 20) if self.np_random.randint(2) else
+             self.np_random.uniform(-20, -8))
+        y = (self.np_random.uniform(8, 20) if self.np_random.randint(2) else
+             self.np_random.uniform(-20, -8))
+        z = self.np_random.uniform(5, 12)
         self.goal = (x, y, z)
 
         # Visual element of the goal
@@ -181,29 +197,34 @@ class DroneNavigationV1(gym.Env):
             self.done = True
             print("reach the goal!  timestamp-" + str(time.time()))
             reward += 50
+        
+        # check if collision happen
+        if self.check_collisions(self.drone.drone):
+            reward -= 30
         return reward
     
-    def setup_obstacles(self, obstacle_num = 100):
+    def setup_obstacles(self, obstacle_num = 50):
         """
         set up obstacles in the environment
         """
+        p.setAdditionalSearchPath(pybullet_data.getDataPath())
+        
         obstacle_list = []
         random.seed(23)
-        print("setting up ", obstacle_num, " obstacles...")
         for _ in range(obstacle_num):
             obstacle_pos = [random.randint(-12,12), random.randint(-12,12), random.randint(2,9)]
-            print(obstacle_pos)
+            # print(obstacle_pos)
             cube = p.loadURDF("cube.urdf", basePosition=obstacle_pos)
             obstacle_list.append(cube), self.obstacles_pos_list.append(obstacle_pos)
-        print("setting up done! ", obstacle_list)
         self.obstacle_list = obstacle_list
         return self.obstacle_list
 
-    def check_collisions(self):
+    def check_collisions(self, object):
         """
-        return True if there is collision between drone and any obstacle
+        return True if there is collision between object and any obstacle
         """
-        for obstacle in self.obstacles_pos_list:
-            contacts = p.getContactPoints(self.drone, obstacle)
-            return contacts if contacts else None
-        return None
+        # for obstacle in self.obstacles_pos_list:
+        #     contacts = p.getContactPoints(object, obstacle)
+        #     return contacts if contacts else None
+        # return None
+        return True if p.getContactPoints(object) else False
