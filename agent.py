@@ -197,7 +197,6 @@ class TRPOAgent:
         num_batch_steps = len(self.buffers['completed_rewards'])
         rewards = torch.tensor(self.buffers['completed_rewards'])
         actions = torch.stack(self.buffers['actions'][:num_batch_steps])
-        print("!!", actions.size())
         states = torch.stack(self.buffers['states'][:num_batch_steps])
         log_probs = torch.stack(self.buffers['log_probs'][:num_batch_steps])
         rewards, actions, states, log_probs = (rewards.to(self.device),

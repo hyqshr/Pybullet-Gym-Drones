@@ -46,7 +46,6 @@ class Drone:
         
         # Concatenate position, orientation, velocity
         observation = (pos + linear_velocity)
-        # print(observation)
         return observation
 
 

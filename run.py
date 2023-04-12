@@ -14,17 +14,19 @@ def main():
     
     agent = TRPOAgent(policy=nn)
 
-    agent.load_model("agent.pth")
+    agent.load_model("agent-v0.pth")
     env = gym.make('DroneNavigation-v0')
     ob = env.reset()
-    
-    while True:
+    total_test = 100
+    count = 0
+    while count < 100:
         action = agent(ob)
         ob, _r, done, _ = env.step(action)
         env.render()
         if done:
             ob = env.reset()
-            time.sleep(0.001)
+            # time.sleep(0.001)
+            count += 1
 
 
 if __name__ == '__main__':

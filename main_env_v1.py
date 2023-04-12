@@ -58,7 +58,7 @@ def main():
                 max_episode_length=200,
                 verbose=True)
     print("saving the model")
-    agent.save_model("agent.pth")
+    agent.save_model("agent_v1.pth")
 
     env = gym.make(env)
     ob = env.reset()

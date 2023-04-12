@@ -143,7 +143,8 @@ class TRPOAgent:
         return self.policy, self.logstd
 
     def fisher_vector_direct(self, vector, states):
-        """Computes the fisher vector product through direct method.
+        """
+        Computes the fisher vector product through direct method.
         The FVP can be determined by first taking the gradient of KL
         divergence w.r.t. the parameters and the dot product of this
         with the input vector, then a gradient over this again w.r.t.
