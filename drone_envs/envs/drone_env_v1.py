@@ -70,6 +70,7 @@ class DroneNavigationV1(gym.Env):
         self.render_rot_matrix = None
         p.resetSimulation(self.client)
         self.setup_obstacles()
+        self.goal_id = None
         
 
     def step(self, action):
@@ -95,7 +96,6 @@ class DroneNavigationV1(gym.Env):
 
     def reset(self):
         print("reset env")
-        
         # Reload the plane, drone, goal position, obstacle
         self.done = False
         Plane(self.client)
@@ -154,8 +154,8 @@ class DroneNavigationV1(gym.Env):
         )
 
     def reset_goal_position(self):
-        if self.goal is not None:
-            p.removeBody(self.goal, self.client)
+        if self.goal_id is not None:
+            p.removeBody(self.goal_id, self.client)
         # Set the goal to a random target
         x = (self.np_random.uniform(8, 20) if self.np_random.randint(2) else
              self.np_random.uniform(-20, -8))
@@ -165,7 +165,7 @@ class DroneNavigationV1(gym.Env):
         self.goal = (x, y, z)
 
         # Visual element of the goal
-        Goal(self.client, self.goal)
+        self.goal_id = Goal(self.client, self.goal).id
         return self.goal
 
     def calculate_reward(self, observation):
@@ -174,10 +174,10 @@ class DroneNavigationV1(gym.Env):
         reward = distance_improvement
 
         # Done by running off boundaries
-        if (observation[0] >= 12 or observation[0] <= -12 or
-                observation[1] >= 12 or observation[1] <= -12 or
-                observation[2] <= 0.05 or observation[2] >= 12):
-            reward -= 0
+        if (observation[0] >= 28 or observation[0] <= -28 or
+                observation[1] >= 28 or observation[1] <= -28 or
+                observation[2] <= 0.01 or observation[2] >= 20):
+            reward -= 10
             self.done = True
 
         # Done by reaching goal

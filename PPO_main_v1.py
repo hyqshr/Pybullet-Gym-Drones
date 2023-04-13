@@ -176,7 +176,7 @@ def train():
             # select action with policy
             action = ppo_agent.select_action(state)
             state, reward, done, _ = env.step(action)
-
+            env.render()
             # saving reward and is_terminals
             ppo_agent.buffer.rewards.append(reward)
             ppo_agent.buffer.is_terminals.append(done)
