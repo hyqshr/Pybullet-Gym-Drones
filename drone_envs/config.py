@@ -44,7 +44,7 @@ observation_space_v0 = {
 }
 
 drone_env_v1 = {
-    "display": p.DIRECT,
+    "display": p.GUI,
     "thrust_x_lower_bound": -0.2,
     "thrust_y_lower_bound": -0.2,
     "thrust_z_lower_bound": -0.2,

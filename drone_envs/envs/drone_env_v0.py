@@ -139,7 +139,7 @@ class DroneNavigationV0(gym.Env):
     def calculate_distance_from_goal(self, observation):
         """Calculate distance based on distance between drone and goal"""
         drone_pos = [observation[0], observation[1], observation[2]]
-        p.resetDebugVisualizerCamera(cameraDistance = 1, cameraYaw=0, cameraPitch=0,cameraTargetPosition=drone_pos)
+        # p.resetDebugVisualizerCamera(cameraDistance = 1, cameraYaw=0, cameraPitch=0,cameraTargetPosition=drone_pos)
         
         return math.sqrt(
             (drone_pos[0] - self.goal[0]) ** 2 +

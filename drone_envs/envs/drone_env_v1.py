@@ -38,15 +38,9 @@ class DroneNavigationV1(gym.Env):
             low=np.array([observation_space["drone_lower_bound_x"], 
                           observation_space["drone_lower_bound_y"], 
                           observation_space["drone_lower_bound_z"], 
-                          observation_space["drone_angle_lower_bound_x"], 
-                          observation_space["drone_angle_lower_bound_y"], 
-                          observation_space["drone_angle_lower_bound_z"],
                           observation_space["drone_velocity_lower_bound_x"],
                           observation_space["drone_velocity_lower_bound_y"],
                           observation_space["drone_velocity_lower_bound_z"],
-                          observation_space["drone_angle_velocity_lower_bound_x"],
-                          observation_space["drone_angle_velocity_lower_bound_y"],
-                          observation_space["drone_angle_velocity_lower_bound_z"],                          
                           observation_space["goal_lower_bound_x"],
                           observation_space["goal_lower_bound_y"],
                           observation_space["goal_lower_bound_z"],
@@ -54,15 +48,9 @@ class DroneNavigationV1(gym.Env):
             high=np.array([observation_space["drone_upper_bound_x"], 
                           observation_space["drone_upper_bound_y"], 
                           observation_space["drone_upper_bound_z"], 
-                          observation_space["drone_angle_upper_bound_x"], 
-                          observation_space["drone_angle_upper_bound_y"], 
-                          observation_space["drone_angle_upper_bound_z"],
                           observation_space["drone_velocity_upper_bound_x"],
                           observation_space["drone_velocity_upper_bound_y"],
                           observation_space["drone_velocity_upper_bound_z"],
-                          observation_space["drone_angle_velocity_upper_bound_x"],
-                          observation_space["drone_angle_velocity_upper_bound_y"],
-                          observation_space["drone_angle_velocity_upper_bound_z"],
                           observation_space["goal_upper_bound_x"],
                           observation_space["goal_upper_bound_y"],
                           observation_space["goal_upper_bound_z"],
@@ -80,9 +68,9 @@ class DroneNavigationV1(gym.Env):
         self.prev_dist_to_goal = None
         self.rendered_img = None
         self.render_rot_matrix = None
-        self.frames = deque([], maxlen=5)
+        p.resetSimulation(self.client)
+        self.setup_obstacles()
         
-        # self.reset()
 
     def step(self, action):
         
@@ -92,11 +80,13 @@ class DroneNavigationV1(gym.Env):
         drone_ob = self.drone.get_observation()
         # Compute reward as L2 change in distance to goal
         reward = self.calculate_reward(drone_ob)
-        # print(reward)
         dist_to_goal = self.calculate_distance_from_goal(drone_ob)
         self.prev_dist_to_goal = dist_to_goal
 
-        ob = (np.array(list(self.frames)), np.array(drone_ob + self.goal, dtype=np.float32))
+        image = self.get_drone_camera_image()
+        metadata = np.array(drone_ob + self.goal, dtype=np.float32)
+        ob = np.concatenate((image.flatten(), metadata))
+        
         return ob, reward, self.done, dict()
 
     def seed(self, seed=None):
@@ -105,30 +95,28 @@ class DroneNavigationV1(gym.Env):
 
     def reset(self):
         print("reset env")
-        p.resetSimulation(self.client)
         
         # Reload the plane, drone, goal position, obstacle
         self.done = False
         Plane(self.client)
+        if self.drone is not None:
+            p.removeBody(self.drone.drone, self.client)
         self.drone = Drone(self.client)
         self.reset_goal_position()
-        self.setup_obstacles()
         # Get observation to return
         drone_ob = self.drone.get_observation()
-        
         # call render and reset the image queue
         self.render()
-        for _ in range(5):
-            self.frames.append(self.frame)
-
+        image = self.get_drone_camera_image()
         # calculate initial distance from drone to goal
         self.prev_dist_to_goal = self.calculate_distance_from_goal(drone_ob)
-        
-        return (np.array(list(self.frames)), np.array(drone_ob + self.goal, dtype=np.float32))
+        metadata = np.array(drone_ob + self.goal, dtype=np.float32)
+             
+        return np.concatenate((image.flatten(), metadata))
 
     def render(self, mode='human'):
         if self.rendered_img is None:
-            self.rendered_img = plt.imshow(np.zeros((100, 100, 4)))
+            self.rendered_img = plt.imshow(np.zeros((10, 10, 1)))
 
         # Base information
         drone_id, client_id = self.drone.get_ids()
@@ -143,14 +131,13 @@ class DroneNavigationV1(gym.Env):
         view_matrix = p.computeViewMatrix((pos[0], pos[1],pos[2]+0.05), pos + camera_vec, up_vec)
 
         # Display image
-        frame = p.getCameraImage(100, 100, view_matrix, proj_matrix)[2]
-        frame = np.reshape(frame, (100, 100, 4))
+        frame = p.getCameraImage(10, 10, view_matrix, proj_matrix)[3]
+        frame = np.reshape(frame, (10, 10, 1))
         self.rendered_img.set_data(frame)
-        plt.draw()
+        # plt.draw()
         
         # append the frame to img deque
         self.frame = frame
-        self.frames.append(frame)
 
     def close(self):
         p.disconnect(self.client)
@@ -167,6 +154,8 @@ class DroneNavigationV1(gym.Env):
         )
 
     def reset_goal_position(self):
+        if self.goal is not None:
+            p.removeBody(self.goal, self.client)
         # Set the goal to a random target
         x = (self.np_random.uniform(8, 20) if self.np_random.randint(2) else
              self.np_random.uniform(-20, -8))
@@ -180,7 +169,6 @@ class DroneNavigationV1(gym.Env):
         return self.goal
 
     def calculate_reward(self, observation):
-        # print(observation)
         distance = self.calculate_distance_from_goal(observation)
         distance_improvement = self.prev_dist_to_goal - distance
         reward = distance_improvement
@@ -228,3 +216,10 @@ class DroneNavigationV1(gym.Env):
         #     return contacts if contacts else None
         # return None
         return True if p.getContactPoints(object) else False
+    
+    def get_drone_camera_image(self):
+        """
+        return the camera image of the drone
+        """
+        
+        return self.frame

@@ -32,7 +32,7 @@ def setup_obstacles(obstacle_num = 100):
     print("setting up done! ", obstacle_list)
     return obstacle_list
         
-obstacle_list = setup_obstacles()
+# obstacle_list = setup_obstacles()
 
 for step in range(300):
     pos, ori = p.getBasePositionAndOrientation(drone)
@@ -47,11 +47,11 @@ for step in range(300):
 
     print(step)
     p.stepSimulation()
-    for i in obstacle_list:
-        contacts = p.getContactPoints(drone,cube)
-        if contacts:
-            print("!!!!!!!!!!!!!")
-        print(contacts)
+    # for i in obstacle_list:
+    #     contacts = p.getContactPoints(drone,cube)
+    #     if contacts:
+    #         print("!!!!!!!!!!!!!")
+    #     print(contacts)
         
     # Base information
     proj_matrix = p.computeProjectionMatrixFOV(
@@ -67,31 +67,12 @@ for step in range(300):
     view_matrix = p.computeViewMatrix((pos[0], pos[1],pos[2]+0.05), pos + camera_vec, up_vec)
 
     # Display image
-    frame = p.getCameraImage(100, 100, view_matrix, proj_matrix)[2]
-    frame = np.reshape(frame, (100, 100, 4))
-    plt.imshow(np.zeros((100, 100, 4))).set_data(frame)
-    plt.draw()
+    frame = p.getCameraImage(100, 100, view_matrix, proj_matrix)[3]
+    # frame = np.reshape(frame, (100, 100, 1))
+    # plt.imshow(np.zeros((100, 100, 4))).set_data(frame)
+    # plt.draw()
     # plt.pause(.0001)
     # time.sleep(0.001)
     
-class mySequential(torch.nn.Sequential):
-    def forward(self, *inputs):
-        for module in self._modules.values():
-            print(module, input)
-            if type(inputs) != int:
-                inputs = module(*inputs)
-                print(1)
-            else:
-                inputs = module(inputs)
-                print(2)
-                
-        return inputs
-    
-nn = mySequential(
-    torch.nn.Linear(9, 64),
-    torch.nn.ReLU(),
-    torch.nn.Linear(64, 3)
-)
 
-nn()
 

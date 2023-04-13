@@ -13,8 +13,8 @@ p.loadURDF("r2d2.urdf", [0, 0, 1])
 p.loadURDF('cube_small.urdf', basePosition=[0.0, 0.0, 0.025])
 cube_trans = p.loadURDF('cube_small.urdf', basePosition=[0.0, 0.1, 0.025])
 p.changeVisualShape(cube_trans, -1, rgbaColor=[1, 1, 1, 0.1])
-width = 128
-height = 128
+width = 32
+height = 32
 
 fov = 60
 aspect = width / height

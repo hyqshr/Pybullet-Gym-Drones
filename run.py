@@ -22,12 +22,12 @@ def main():
     while count < 100:
         action = agent(ob)
         ob, _r, done, _ = env.step(action)
-        env.render()
+        # env.render()
         if done:
             ob = env.reset()
             # time.sleep(0.001)
             count += 1
-
+    print(count)
 
 if __name__ == '__main__':
     main()
