@@ -8,6 +8,7 @@ drone_env_v0 = {
     "thrust_x_upper_bound": 0.1,
     "thrust_y_upper_bound": 0.1,
     "thrust_z_upper_bound": 0.1,
+    "drone_observation_space": 9,
 }
 
 observation_space_v0 = {
@@ -39,6 +40,8 @@ drone_env_v1 = {
     "thrust_x_upper_bound": 0.2,
     "thrust_y_upper_bound": 0.2,
     "thrust_z_upper_bound": 0.2,
+    "camera_pixel": 16,
+    "drone_metadata_space": 9,
 }
 observation_space_v1 = {
         "drone_lower_bound_x": -25, 

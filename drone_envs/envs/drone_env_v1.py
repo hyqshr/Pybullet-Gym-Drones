@@ -12,7 +12,7 @@ from ..config import observation_space_v1 as observation_space
 import random
 import matplotlib.pyplot as plt
 import pybullet_data
-
+from agent.PPOagent import PPO
 
 class DroneNavigationV1(gym.Env):
     metadata = {'render.modes': ['human']}
@@ -67,12 +67,13 @@ class DroneNavigationV1(gym.Env):
         self.done = False
         self.prev_dist_to_goal = None
         self.rendered_img = None
-        self.render_rot_matrix = None
         p.resetSimulation(self.client)
         self.setup_obstacles()
         self.goal_id = None
+        self.camera_pixel = config["camera_pixel"]
+        self.reach_target = False
+        self.info = {"reach_target": False}
         
-
     def step(self, action):
         
         # Feed action to the drone and get observation of drone's state
@@ -87,8 +88,9 @@ class DroneNavigationV1(gym.Env):
         image = self.get_drone_camera_image()
         metadata = np.array(drone_ob + self.goal, dtype=np.float32)
         ob = np.concatenate((image.flatten(), metadata))
-        
-        return ob, reward, self.done, dict()
+        if self.reach_target:
+            self.info = {"reach_target": True}
+        return ob, reward, self.done, self.info
 
     def seed(self, seed=None):
         self.np_random, seed = gym.utils.seeding.np_random(seed)
@@ -98,6 +100,8 @@ class DroneNavigationV1(gym.Env):
         print("reset env")
         # Reload the plane, drone, goal position, obstacle
         self.done = False
+        self.reach_target = False
+        self.info = {"reach_target": False}
         Plane(self.client)
         if self.drone is not None:
             p.removeBody(self.drone.drone, self.client)
@@ -114,29 +118,31 @@ class DroneNavigationV1(gym.Env):
              
         return np.concatenate((image.flatten(), metadata))
 
-    def render(self, mode='human'):
-        if self.rendered_img is None:
-            self.rendered_img = plt.imshow(np.zeros((10, 10, 1)))
-
+    def render(self, mode = 'human'):
+        
         # Base information
         drone_id, client_id = self.drone.get_ids()
-        proj_matrix = p.computeProjectionMatrixFOV(fov=80, aspect=1,
+        proj_matrix = p.computeProjectionMatrixFOV(fov=100, aspect=1,
                                                    nearVal=0.01, farVal=100)
         pos, ori = p.getBasePositionAndOrientation(drone_id, client_id)
-
-        # Rotate camera direction
-        rot_mat = np.array(p.getMatrixFromQuaternion(ori)).reshape(3, 3)
-        camera_vec = np.matmul(rot_mat, [1, 0, 0])
-        up_vec = np.matmul(rot_mat, np.array([0, 0, 1]))
-        view_matrix = p.computeViewMatrix((pos[0], pos[1],pos[2]+0.05), pos + camera_vec, up_vec)
-
-        # Display image
-        frame = p.getCameraImage(10, 10, view_matrix, proj_matrix)[3]
-        frame = np.reshape(frame, (10, 10, 1))
-        self.rendered_img.set_data(frame)
-        # plt.draw()
+        linear_vel, _ = p.getBaseVelocity(drone_id)
+        view_matrix = p.computeViewMatrix(
+                                      (pos[0] + 0.1, pos[1],pos[2]+0.05), 
+                                      (pos[0] + linear_vel[0], pos[1] + linear_vel[1], 
+                                       pos[2] + linear_vel[2]), 
+                                      [0, 0, 1]
+                                      )
+        yaw = math.atan2(linear_vel[0], linear_vel[2])
+        pitch = math.atan2(linear_vel[1], linear_vel[2])
+        p.resetDebugVisualizerCamera(cameraDistance = 0.5, cameraYaw=yaw, cameraPitch=pitch,cameraTargetPosition=pos)
         
-        # append the frame to img deque
+        # get camera image
+        frame = p.getCameraImage(self.camera_pixel, 
+                                 self.camera_pixel, 
+                                 view_matrix, proj_matrix)[3]
+        frame = np.reshape(frame, (self.camera_pixel, self.camera_pixel, 1))
+        
+        # set the frame
         self.frame = frame
 
     def close(self):
@@ -145,7 +151,6 @@ class DroneNavigationV1(gym.Env):
     def calculate_distance_from_goal(self, observation):
         """Calculate distance based on distance between drone and goal"""
         drone_pos = [observation[0], observation[1], observation[2]]
-        p.resetDebugVisualizerCamera(cameraDistance = 1, cameraYaw=0, cameraPitch=0,cameraTargetPosition=drone_pos)
         
         return math.sqrt(
             (drone_pos[0] - self.goal[0]) ** 2 +
@@ -172,26 +177,27 @@ class DroneNavigationV1(gym.Env):
         distance = self.calculate_distance_from_goal(observation)
         distance_improvement = self.prev_dist_to_goal - distance
         reward = distance_improvement
-
+        # print(reward)
         # Done by running off boundaries
         if (observation[0] >= 28 or observation[0] <= -28 or
                 observation[1] >= 28 or observation[1] <= -28 or
                 observation[2] <= 0.01 or observation[2] >= 20):
-            reward -= 10
+            reward -= 0.5
             self.done = True
 
         # Done by reaching goal
         if distance < 2:
             self.done = True
+            self.reach_target = True
             print("reach the goal!  timestamp-" + str(time.time()))
-            reward += 50
+            reward += 5
         
         # check if collision happen
         if self.check_collisions(self.drone.drone):
-            reward -= 30
+            reward -= 0.5
         return reward
     
-    def setup_obstacles(self, obstacle_num = 50):
+    def setup_obstacles(self, obstacle_num = 30):
         """
         set up obstacles in the environment
         """
@@ -211,15 +217,10 @@ class DroneNavigationV1(gym.Env):
         """
         return True if there is collision between object and any obstacle
         """
-        # for obstacle in self.obstacles_pos_list:
-        #     contacts = p.getContactPoints(object, obstacle)
-        #     return contacts if contacts else None
-        # return None
         return True if p.getContactPoints(object) else False
     
     def get_drone_camera_image(self):
         """
         return the camera image of the drone
         """
-        
         return self.frame

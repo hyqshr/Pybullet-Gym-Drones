@@ -30,15 +30,9 @@ class DroneNavigationV0(gym.Env):
             low=np.array([observation_space["drone_lower_bound_x"], 
                           observation_space["drone_lower_bound_y"], 
                           observation_space["drone_lower_bound_z"], 
-                        #   observation_space["drone_angle_lower_bound_x"], 
-                        #   observation_space["drone_angle_lower_bound_y"], 
-                        #   observation_space["drone_angle_lower_bound_z"],
                           observation_space["drone_velocity_lower_bound_x"],
                           observation_space["drone_velocity_lower_bound_y"],
                           observation_space["drone_velocity_lower_bound_z"],
-                        #   observation_space["drone_angle_velocity_lower_bound_x"],
-                        #   observation_space["drone_angle_velocity_lower_bound_y"],
-                        #   observation_space["drone_angle_velocity_lower_bound_z"],                          
                           observation_space["goal_lower_bound_x"],
                           observation_space["goal_lower_bound_y"],
                           observation_space["goal_lower_bound_z"],
@@ -46,15 +40,9 @@ class DroneNavigationV0(gym.Env):
             high=np.array([observation_space["drone_upper_bound_x"], 
                           observation_space["drone_upper_bound_y"], 
                           observation_space["drone_upper_bound_z"], 
-                        #   observation_space["drone_angle_upper_bound_x"], 
-                        #   observation_space["drone_angle_upper_bound_y"], 
-                        #   observation_space["drone_angle_upper_bound_z"],
                           observation_space["drone_velocity_upper_bound_x"],
                           observation_space["drone_velocity_upper_bound_y"],
                           observation_space["drone_velocity_upper_bound_z"],
-                        #   observation_space["drone_angle_velocity_upper_bound_x"],
-                        #   observation_space["drone_angle_velocity_upper_bound_y"],
-                        #   observation_space["drone_angle_velocity_upper_bound_z"],
                           observation_space["goal_upper_bound_x"],
                           observation_space["goal_upper_bound_y"],
                           observation_space["goal_upper_bound_z"],
@@ -71,6 +59,7 @@ class DroneNavigationV0(gym.Env):
         self.prev_dist_to_goal = None
         self.rendered_img = None
         self.render_rot_matrix = None
+        self.reach_target = False
         self.reset()
 
     def step(self, action):
@@ -85,16 +74,16 @@ class DroneNavigationV0(gym.Env):
         self.prev_dist_to_goal = dist_to_goal
 
         ob = np.array(drone_ob + self.goal, dtype=np.float32)
-        return ob, reward, self.done, dict()
+        return ob, reward, self.done, self.reach_target
 
     def seed(self, seed=None):
         self.np_random, seed = gym.utils.seeding.np_random(seed)
         return [seed]
 
     def reset(self):
-        # print("reset env")
         p.resetSimulation(self.client)
         self.done = False
+        self.reach_target = False
         
         # Reload the plane and drone
         Plane(self.client)
@@ -129,10 +118,6 @@ class DroneNavigationV0(gym.Env):
         self.rendered_img.set_data(frame)
         plt.draw()
         
-        # plt.savefig('graph' +  str(time.time()) +  '.png')
-        # print(frame)
-        # plt.pause(.0001)
-
     def close(self):
         p.disconnect(self.client)
 
@@ -170,13 +155,13 @@ class DroneNavigationV0(gym.Env):
         if (observation[0] >= 12 or observation[0] <= -12 or
                 observation[1] >= 12 or observation[1] <= -12 or
                 observation[2] <= 0 or observation[2] >= 12):
-            # print("out of bound!")
-            reward -= 0
+            reward -= 1
             self.done = True
 
         # Done by reaching goal
         if distance < 2:
             self.done = True
+            self.reach_target = True
             print("reach the goal!  timestamp-" + str(time.time()))
             reward += 50
         

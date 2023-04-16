@@ -9,6 +9,12 @@ from torch.nn.utils.convert_parameters import parameters_to_vector
 from torch.nn.utils.convert_parameters import vector_to_parameters
 
 
+model = nn = torch.nn.Sequential(
+        torch.nn.Linear(9, 64),
+        torch.nn.ReLU(),
+        torch.nn.Linear(64, 3)
+    )
+
 class TRPOAgent:
     """Continuous TRPO agent."""
 
@@ -54,12 +60,9 @@ class TRPOAgent:
         -------
             Action choice for each action dimension.
         """
-        # print(state)
-        metadata = torch.as_tensor(state[1:], dtype=torch.float32, device=self.device)
-        image = torch.as_tensor(state[0], dtype=torch.float32, device=self.device)
-        
+        state = torch.as_tensor(state, dtype=torch.float32, device=self.device)
         # Parameterize distribution with policy, sample action
-        normal_dist = self.distribution(self.policy(image, metadata), self.logstd.exp())
+        normal_dist = self.distribution(self.policy(state), self.logstd.exp())
         action = normal_dist.sample()
         # Save information
         self.buffers['actions'].append(action)
@@ -143,8 +146,7 @@ class TRPOAgent:
         return self.policy, self.logstd
 
     def fisher_vector_direct(self, vector, states):
-        """
-        Computes the fisher vector product through direct method.
+        """Computes the fisher vector product through direct method.
         The FVP can be determined by first taking the gradient of KL
         divergence w.r.t. the parameters and the dot product of this
         with the input vector, then a gradient over this again w.r.t.
@@ -248,7 +250,7 @@ class TRPOAgent:
 
         # Begin training
         observation = env.reset()
-        # print("length observation: ",len(observation))
+        print("length observation: ",len(observation))
         
         for iteration in range(iterations):
             # Set initial value to 0

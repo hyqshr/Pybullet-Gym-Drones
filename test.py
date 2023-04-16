@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import pybullet as p
 import pybullet_data
@@ -33,25 +34,20 @@ def setup_obstacles(obstacle_num = 100):
     return obstacle_list
         
 # obstacle_list = setup_obstacles()
+init_location = [0,0,0]
+up_vector = np.array([0, 1, 0])
 
 for step in range(300):
-    pos, ori = p.getBasePositionAndOrientation(drone)
     # if step == 100:
     p.applyExternalForce(
         drone,
         4,
-        forceObj=[1, 0, 0.28],
+        forceObj=[0.1,0.1, 0],
         posObj=[0, 0, 0],
         flags=p.LINK_FRAME,
     )
-
-    print(step)
+    
     p.stepSimulation()
-    # for i in obstacle_list:
-    #     contacts = p.getContactPoints(drone,cube)
-    #     if contacts:
-    #         print("!!!!!!!!!!!!!")
-    #     print(contacts)
         
     # Base information
     proj_matrix = p.computeProjectionMatrixFOV(
@@ -60,19 +56,21 @@ for step in range(300):
         nearVal=0.01, 
         farVal=100)
     pos, ori = p.getBasePositionAndOrientation(drone)
-    # Rotate camera direction
-    rot_mat = np.array(p.getMatrixFromQuaternion(ori)).reshape(3, 3)
-    camera_vec = np.matmul(rot_mat, [1, 0, 0])
-    up_vec = np.matmul(rot_mat, np.array([0, 0, 1]))
-    view_matrix = p.computeViewMatrix((pos[0], pos[1],pos[2]+0.05), pos + camera_vec, up_vec)
+    
+    linear_vel, _ = p.getBaseVelocity(drone)
+
+
+    # Compute the view matrix using the camera position and orientation
+    view_matrix = p.computeViewMatrix((pos[0] + 0.05, pos[1],pos[2]+0.05), 
+                                      (pos[0] + linear_vel[0], pos[1] + linear_vel[1] , pos[2] + linear_vel[2]), [0, 0, 1])
+
+    # rot_mat = np.array(p.getMatrixFromQuaternion(ori)).reshape(3, 3)
+    # up_vec = np.matmul(rot_mat, np.array([0, 0, 1]))
+    # view_matrix = p.computeViewMatrix((pos[0], pos[1],pos[2]+0.05), camera_vec, [0,1,0])
 
     # Display image
     frame = p.getCameraImage(100, 100, view_matrix, proj_matrix)[3]
-    # frame = np.reshape(frame, (100, 100, 1))
-    # plt.imshow(np.zeros((100, 100, 4))).set_data(frame)
-    # plt.draw()
-    # plt.pause(.0001)
-    # time.sleep(0.001)
+    init_location = pos
     
 
 

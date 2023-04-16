@@ -137,7 +137,16 @@ class ActorCritic(nn.Module):
 
 
 class PPO:
-    def __init__(self, state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, has_continuous_action_space, action_std_init=0.6):
+    def __init__(self, 
+                 state_dim, 
+                 action_dim, 
+                 lr_actor = 0.0003, 
+                 lr_critic = 0.001, 
+                 gamma = 0.99, 
+                 K_epochs = 100, 
+                 eps_clip = 0.2, 
+                 has_continuous_action_space = True, 
+                 action_std_init=0.6):
 
         self.has_continuous_action_space = has_continuous_action_space
 
@@ -281,7 +290,7 @@ class PPO:
         torch.save(self.policy_old.state_dict(), checkpoint_path)
    
 
-    def load(self, checkpoint_path):
+    def load_model(self, checkpoint_path):
         self.policy_old.load_state_dict(torch.load(checkpoint_path, map_location=lambda storage, loc: storage))
         self.policy.load_state_dict(torch.load(checkpoint_path, map_location=lambda storage, loc: storage))
         

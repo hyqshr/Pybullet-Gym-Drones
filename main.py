@@ -1,6 +1,6 @@
 import gym
 import torch
-from agent import TRPOAgent
+from agent.TRPOagent import TRPOAgent
 import time
 import drone_envs
 import pybullet as p
