@@ -13,10 +13,28 @@ Drone auto-navigation stimulation developed in [Pybullet](https://pybullet.org/)
 
 ![result](./image/result.png)
 
-# Installation
-
 
 # Run
+
+- You can run & see the real time successful rate by:
+
+```
+python run.py --model PPO --version 0  
+```
+
+- To train the model, you can run:
+```
+python PPO_trainer.py
+```
+
+or 
+
+```
+python TRPO_trainer.py
+```
+
+- You can modify the GUI in `drone_envs/config` `"display": p.GUI,`
+
 
 
 Thanks [Medium series on creating OpenAI Gym Environments with PyBullet](https://medium.com/@gerardmaggiolino/creating-openai-gym-environments-with-pybullet-part-1-13895a622b24). 
