@@ -7,10 +7,10 @@ from numpy.random import choice
 from copy import deepcopy
 from torch.nn.utils.convert_parameters import parameters_to_vector
 from torch.nn.utils.convert_parameters import vector_to_parameters
-
+import json
 
 model = nn = torch.nn.Sequential(
-        torch.nn.Linear(9, 64),
+        torch.nn.Linear(265, 64),
         torch.nn.ReLU(),
         torch.nn.Linear(64, 3)
     )
@@ -243,14 +243,18 @@ class TRPOAgent:
             env.seed(seed)
         if max_episode_length is None:
             max_episode_length = float('inf')
+            
         # Recording
         recording = {'episode_reward': [[]],
                      'episode_length': [0],
-                     'num_episodes_in_iteration': []}
+                     'num_episodes_in_iteration': [],
+                     'iteration_average_reward': []}
 
         # Begin training
         observation = env.reset()
         print("length observation: ",len(observation))
+        
+        
         
         for iteration in range(iterations):
             # Set initial value to 0
@@ -290,12 +294,16 @@ class TRPOAgent:
                 num_episode = recording['num_episodes_in_iteration'][-1]
                 avg = (round(sum(recording['episode_reward'][-num_episode:-1])
                              / (num_episode - 1), 3))
+                recording['iteration_average_reward'].append(avg)
                 print(f'Average Reward over Iteration {iteration}: {avg}')
             # Optimize after batch
             self.optimize()
 
         env.close()
+        self.save_log_to_json(recording)    
+        
         # Return recording information
+        print(recording)
         return recording
 
     def save_model(self, path):
@@ -308,3 +316,10 @@ class TRPOAgent:
         checkpoint = torch.load(path)
         self.policy.load_state_dict(checkpoint['policy'])
         self.logstd = checkpoint['logstd'].to(self.device)
+        
+    def save_log_to_json(self, recording):
+        # Define the filename for the output file
+        filename = "agent/log/TRPO_LOG_v0.json"
+        # Write the dictionary to the output file
+        with open(filename, 'w') as f:
+            json.dump(recording, f)

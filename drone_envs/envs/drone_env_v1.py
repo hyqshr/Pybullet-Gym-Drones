@@ -72,7 +72,6 @@ class DroneNavigationV1(gym.Env):
         self.goal_id = None
         self.camera_pixel = config["camera_pixel"]
         self.reach_target = False
-        self.info = {"reach_target": False}
         
     def step(self, action):
         
@@ -88,9 +87,8 @@ class DroneNavigationV1(gym.Env):
         image = self.get_drone_camera_image()
         metadata = np.array(drone_ob + self.goal, dtype=np.float32)
         ob = np.concatenate((image.flatten(), metadata))
-        if self.reach_target:
-            self.info = {"reach_target": True}
-        return ob, reward, self.done, self.info
+
+        return ob, reward, self.done, self.reach_target
 
     def seed(self, seed=None):
         self.np_random, seed = gym.utils.seeding.np_random(seed)
@@ -101,7 +99,6 @@ class DroneNavigationV1(gym.Env):
         # Reload the plane, drone, goal position, obstacle
         self.done = False
         self.reach_target = False
-        self.info = {"reach_target": False}
         Plane(self.client)
         if self.drone is not None:
             p.removeBody(self.drone.drone, self.client)

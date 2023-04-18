@@ -44,13 +44,6 @@ parser.add_argument(
     default='run', 
     choices=['run', 'train']
 )
-parser.add_argument(
-    '--GUI', 
-    type=int, 
-    help='If the GUI mode of pybullet is on. Default to be off', 
-    default=0, 
-    choices=[0, 1]
-)
 
 model_path = "agent/model"
 action_dim = 3
@@ -90,11 +83,9 @@ def get_config_by_args(args):
 def main():
     # parse the arguments
     args = parser.parse_args()
-    if args.GUI == 1:
-        drone_env_v1['GUI'] = True
         
     env_name, state_dim, agent, model_file = get_config_by_args(args)
-    print(f'Start {args.mode}ing mode+ with {args.model} model for drone env version: {args.version}. GUI is {"on" if args.GUI else "off"}')
+    print(f'Start {args.mode}ing mode+ with {args.model} model for drone env version: {args.version}.')
         
     agent.load_model(model_file)
     env = gym.make(env_name)

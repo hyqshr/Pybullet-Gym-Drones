@@ -1,6 +1,5 @@
 import pybullet as p
 import os
-import math
 import numpy as np
 
 class Drone:

@@ -1,9 +1,6 @@
-import os
-import glob
-import time
 from datetime import datetime
 import drone_envs
-
+import json
 import torch
 import numpy as np
 from drone_envs.config import drone_env_v1
@@ -13,7 +10,16 @@ import gym
 from agent.PPOagent import PPO
 
 ################################### Training ###################################
-def train(env_version = 1):
+def save_log_to_json(log, env_version):
+    # Define the filename for the output file
+    
+    filename = f"agent/log/PPO_LOG_v{env_version}.json"
+    print(f"saving log to {filename}") 
+    # Write the dictionary to the output file
+    with open(filename, 'w') as f:
+        json.dump(log, f)
+
+def train(env_version = 0):
     print("============================================================================================")
 
     ####### initialize environment hyperparameters ######
@@ -21,8 +27,8 @@ def train(env_version = 1):
 
     has_continuous_action_space = True  # continuous action space; else discrete
 
-    max_ep_len = 1000                   # max timesteps in one episode
-    max_training_timesteps = int(1e6)   # break training loop if timeteps > max_training_timesteps
+    max_ep_len = 800                    # max timesteps in one episode
+    max_training_timesteps = 1200000   # break training loop if timeteps > max_training_timesteps
 
     print_freq = max_ep_len * 10        # print avg reward in the interval (in num timesteps)
     save_model_freq = int(1e5)          # save model frequency (in num timesteps)
@@ -99,7 +105,7 @@ def train(env_version = 1):
 
     # track total training time
     start_time = datetime.now().replace(microsecond=0)
-    print("Started training at (GMT) : ", start_time)
+    print("Started training at: ", start_time)
 
     print("============================================================================================")
 
@@ -107,12 +113,16 @@ def train(env_version = 1):
     print_running_reward = 0
     print_running_episodes = 0
 
-    log_running_reward = 0
-    log_running_episodes = 0
-
     time_step = 0
     i_episode = 0
-
+    
+    # Recording
+    log = {
+        'episode_reward': [[]],
+        'episode_length': [0],
+        'timestamp_average_reward': []
+    }
+    
     # training loop
     while time_step <= max_training_timesteps:
 
@@ -120,7 +130,7 @@ def train(env_version = 1):
         current_ep_reward = 0
 
         for t in range(1, max_ep_len+1):
-
+            
             # select action with policy
             action = ppo_agent.select_action(state)
             state, reward, done, _ = env.step(action)
@@ -131,6 +141,10 @@ def train(env_version = 1):
 
             time_step +=1
             current_ep_reward += reward
+            
+            log['episode_length'][-1] += 1
+            log['episode_reward'][-1].append(reward)
+            
 
             # update PPO agent
             if time_step % update_timestep == 0:
@@ -146,7 +160,7 @@ def train(env_version = 1):
                 # print average reward till last episode
                 print_avg_reward = print_running_reward / print_running_episodes
                 print_avg_reward = round(print_avg_reward, 2)
-
+                log['timestamp_average_reward'].append(print_avg_reward)
                 print("Episode : {} \t\t Timestep : {} \t\t Average Reward : {}".format(i_episode, time_step, print_avg_reward))
                 print(time_step)
                 print_running_reward = 0
@@ -154,6 +168,9 @@ def train(env_version = 1):
 
             # break; if the episode is over
             if done:
+                log['episode_length'].append(0)
+                log['episode_reward'].append([])
+                
                 break
             
             # save model weights
@@ -164,13 +181,11 @@ def train(env_version = 1):
                 print("model saved")
                 print("Elapsed Time  : ", datetime.now().replace(microsecond=0) - start_time)
                 print("--------------------------------------------------------------------------------------------")
+                save_log_to_json(log, env_version)
 
 
         print_running_reward += current_ep_reward
         print_running_episodes += 1
-
-        log_running_reward += current_ep_reward
-        log_running_episodes += 1
 
         i_episode += 1
 
@@ -190,7 +205,7 @@ def train(env_version = 1):
     print("Finished training at (GMT) : ", end_time)
     print("Total training time  : ", end_time - start_time)
     print("============================================================================================")
-
+    print(log)
 
 if __name__ == '__main__':
 

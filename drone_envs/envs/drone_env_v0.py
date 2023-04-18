@@ -17,10 +17,9 @@ class DroneNavigationV0(gym.Env):
     def __init__(self):
         """
         drone action space:
+            - The desired thrust along the drone's x-axis
+            - The desired thrust along the drone's y-axis
             - The desired thrust along the drone's z-axis
-            - The desired torque around the drone's x-axis
-            - The desired torque around the drone's y-axis
-            - The desired torque around the drone's z-axis
         """
         self.action_space = gym.spaces.box.Box(
             low=np.array([-0.1, -0.1, -0.1], dtype=np.float32),
@@ -81,6 +80,7 @@ class DroneNavigationV0(gym.Env):
         return [seed]
 
     def reset(self):
+        print("reset")
         p.resetSimulation(self.client)
         self.done = False
         self.reach_target = False
