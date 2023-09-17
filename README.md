@@ -1,4 +1,4 @@
-# Pybullet-Gym-Drone
+# Pybullet-Gym-Drone - 强化学习无人机
 
 Drone auto-navigation stimulation developed in [Pybullet](https://pybullet.org/) + [OpenAI Gym](https://github.com/openai/gym) Environment. Trust Region Policy Optimization (TRPO) and Proximal Policy Optimization (PPO) is implemented.
 
